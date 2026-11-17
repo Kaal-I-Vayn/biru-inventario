@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comercial Biru · Inventario</title>
+<link rel="icon" href="logo.jpg">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --rojo:#C8202F; --rojo-osc:#9E1622; --rojo-suave:#FBE9EA;
+  --negro:#18181B; --tinta:#232326; --gris:#6B6B73; --linea:#E6E4E1;
+  --fondo:#F6F5F3; --blanco:#fff;
+  --ok-bg:#E4F4E8; --ok:#17602E; --av-bg:#FFF1D6; --av:#7A4B00; --cr-bg:#FBE0E2; --cr:#8F121E; --in-bg:#E5EEFB; --in:#1D4A8F;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--tinta);background:var(--fondo)}
+h1,h2,h3{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+.marca{font-family:Georgia,"Times New Roman",serif;font-weight:700;letter-spacing:.5px}
+
+/* Login */
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:90px 16px 30px;background:var(--rojo) radial-gradient(circle at 30% 20%,#DB3443 0,var(--rojo) 45%,var(--rojo-osc) 100%)}
+.login .caja{background:var(--blanco);border-radius:16px;padding:28px;width:100%;max-width:380px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.login .logo{width:120px;height:120px;border-radius:50%;object-fit:cover;display:block;margin:-80px auto 12px;border:5px solid var(--blanco);box-shadow:0 6px 18px rgba(0,0,0,.25);background:var(--rojo)}
+.login h1{text-align:center;font-size:26px;color:var(--negro)}
+.login h1 small{display:block;font:500 12px system-ui;letter-spacing:3px;color:var(--rojo)}
+.login p.sub{text-align:center;color:var(--gris);margin:6px 0 18px}
+.aviso{background:var(--av-bg);color:var(--av);border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:12px}
+details.con{margin-top:14px;font-size:13px;color:var(--gris)}
+details.con summary{cursor:pointer}
+
+/* Estructura */
+.app{display:flex;min-height:100%}
+.lado{width:232px;background:var(--negro);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0}
+.lado .cab{display:flex;align-items:center;gap:10px;padding:16px;background:var(--rojo)}
+.lado .cab img{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #fff}
+.lado .cab b{font-size:19px;line-height:1.05}
+.lado .cab small{display:block;font:500 10px system-ui;letter-spacing:2px;opacity:.9}
+.lado nav{flex:1;overflow:auto;padding:10px 8px}
+.lado nav button{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;color:#D5D5DA;padding:10px 12px;border-radius:8px;cursor:pointer;text-align:left;margin-bottom:2px}
+.lado nav button:hover{background:#27272C;color:#fff}
+.lado nav button.act{background:var(--rojo);color:#fff;font-weight:600}
+.cont{background:#fff;color:var(--rojo-osc);border-radius:20px;font-size:12px;font-weight:700;padding:1px 8px}
+.lado .pie{padding:12px 16px;border-top:1px solid #2E2E34;font-size:13px}
+.lado .pie b{display:block}
+.lado .pie span{color:#A0A0A8}
+.lado .pie button{margin-top:8px;background:none;border:1px solid #4A4A52;color:#fff;border-radius:6px;padding:5px 10px;cursor:pointer}
+.principal{flex:1;min-width:0;padding:22px 26px 60px}
+.barra-movil{display:none}
+.titulo{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.titulo h2{font-size:24px}
+.titulo p{margin:2px 0 0;color:var(--gris);font-size:14px}
+.acciones{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* Componentes */
+.btn{background:var(--rojo);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--rojo-osc)}
+.btn.sec{background:#fff;color:var(--tinta);border:1px solid var(--linea)}
+.btn.sec:hover{background:#F0EEEB}
+.btn.osc{background:var(--negro)}
+.btn.mini{padding:4px 9px;font-size:13px;font-weight:500}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+input,select,textarea{border:1px solid #CFCCC7;border-radius:8px;padding:8px 10px;background:#fff;max-width:100%}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--rojo);outline-offset:1px}
+.tarjeta{background:var(--blanco);border:1px solid var(--linea);border-radius:12px;padding:16px;margin-bottom:16px}
+.tarjeta h3{font-size:15px;margin-bottom:10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--linea);border-radius:12px;padding:14px 16px;border-top:4px solid var(--rojo)}
+.kpi span{font-size:13px;color:var(--gris)}
+.kpi b{display:block;font-size:25px;line-height:1.2;margin-top:2px}
+.kpi small{color:var(--gris)}
+.rej{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px}
+.graf{position:relative;height:250px}
+.tabla-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--gris);padding:8px 10px;border-bottom:2px solid var(--linea);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid #EFEDEA;vertical-align:middle}
+tr:hover td{background:#FBFAF9}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.et{display:inline-block;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.et.ok{background:var(--ok-bg);color:var(--ok)} .et.av{background:var(--av-bg);color:var(--av)}
+.et.cr{background:var(--cr-bg);color:var(--cr)} .et.in{background:var(--in-bg);color:var(--in)} .et.gr{background:#ECEAE7;color:#4A4A50}
+.filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:2px solid var(--linea)}
+.tabs button{background:none;border:0;padding:8px 14px;cursor:pointer;color:var(--gris);font-weight:600;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tabs button.act{color:var(--rojo);border-color:var(--rojo)}
+.vacio{text-align:center;color:var(--gris);padding:26px 10px}
+.muted{color:var(--gris);font-size:13px}
+.ficha{border:1px solid var(--linea);border-left:5px solid var(--rojo);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
+.ficha .sup{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
+.ficha ul{margin:8px 0;padding-left:18px}
+.ficha .acciones{margin-top:6px}
+
+/* Modal */
+.velo{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:50}
+.dlg{background:#fff;border-radius:14px;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.dlg header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:var(--rojo);color:#fff;border-radius:14px 14px 0 0}
+.dlg header button{background:none;border:0;color:#fff;font-size:22px;cursor:pointer;line-height:1}
+.dlg .cuerpo{padding:18px}
+.dlg footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--linea)}
+.campo{margin-bottom:12px}
+.campo label{display:block;font-size:13px;font-weight:600;margin-bottom:4px}
+.campo input,.campo select,.campo textarea{width:100%}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.item{display:grid;grid-template-columns:1fr 110px 34px;gap:6px;margin-bottom:6px}
+.item button{border:1px solid var(--linea);background:#fff;border-radius:8px;cursor:pointer}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--negro);color:#fff;padding:10px 18px;border-radius:30px;z-index:99;display:none;max-width:90vw;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+#toast.err{background:var(--cr)}
+#carga{position:fixed;inset:0;background:rgba(255,255,255,.6);z-index:90;display:none;align-items:center;justify-content:center;font-weight:600}
+#carga span{background:var(--negro);color:#fff;padding:10px 20px;border-radius:30px}
+
+@media(max-width:820px){
+  .app{display:block}
+  .barra-movil{display:flex;align-items:center;gap:10px;background:var(--rojo);color:#fff;padding:10px 14px;position:sticky;top:0;z-index:30}
+  .barra-movil button{background:none;border:1px solid rgba(255,255,255,.6);color:#fff;border-radius:6px;padding:4px 10px;font-size:18px}
+  .lado{position:fixed;left:0;top:0;z-index:40;transform:translateX(-100%);transition:transform .2s}
+  .lado.abierto{transform:none;box-shadow:0 0 0 100vw rgba(0,0,0,.45)}
+  .principal{padding:16px 14px 60px}
+  .dos{grid-template-columns:1fr}
+  .rej{grid-template-columns:1fr}
+}
+@media print{.lado,.barra-movil,.acciones,.filtros{display:none!important}.principal{padding:0}}
+</style>
+</head>
+<body>
+<div id="raiz"></div>
+<div id="modal"></div>
+<div id="toast"></div>
+<div id="carga"><span>Guardando…</span></div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN
+   Pega aquí la URL de tu Apps Script para que todos los equipos
+   queden conectados sin configurar nada. Si queda vacía, se usa
+   la URL guardada en el equipo o, si no hay, el modo demostración.
+   ============================================================ */
+const API_URL_FIJA = '';
+const LOCALES = { L1: 'Tienda Principal', L2: 'Local 2' };
+
+/* ---------- Constantes y estado ---------- */
+const TIPOS = {
+  entrada: { n: 'Entrada', s: 1 }, venta: { n: 'Venta', s: -1 }, merma: { n: 'Merma', s: -1 },
+  ajuste: { n: 'Ajuste por conteo', s: 1 },
+  'traslado-salida': { n: 'Traslado (salida)', s: -1 }, 'traslado-entrada': { n: 'Traslado (entrada)', s: 1 }
+};
+const TABLAS = ['Productos', 'Movimientos', 'Pedidos', 'Llegadas', 'Precios', 'Usuarios'];
+const CLAVE = { Productos: 'codigo', Usuarios: 'usuario' };
+const NUMS = { Productos: ['precio', 'stockMin', 'stockMax'], Movimientos: ['cantidad', 'monto'], Precios: ['anterior', 'nuevo'] };
+const VISTAS = [
+  ['panel', 'Panel'], ['ventas', 'Ventas'], ['inventario', 'Inventario'], ['productos', 'Productos'],
+  ['pedidos', 'Pedidos entre locales'], ['llegadas', 'Llegadas'], ['precios', 'Precios'],
+  ['almacen', 'Almacén'], ['usuarios', 'Usuarios'], ['conexion', 'Conexión']
+];
+let db = null, user = null, cred = null, vista = 'panel', graficos = [];
+const est = { q: '', cat: '', pLocal: '', pMes: '', invTab: 'stock', hTipo: '', hLocal: '', vFecha: '', vLocal: '', aLocal: '' };
+
+/* ---------- Utilidades ---------- */
+const $ = s => document.querySelector(s);
+const h = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clp = n => '$' + Math.round(n || 0).toLocaleString('es-CL');
+const num = n => (Math.round((n || 0) * 100) / 100).toLocaleString('es-CL');
+const corto = v => Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString('es-CL', { maximumFractionDigits: 1 }) + ' M' : Math.abs(v) >= 1e3 ? Math.round(v / 1e3) + ' mil' : v;
+const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const hoy = () => iso(new Date());
+const masDias = (f, n) => { const d = new Date(f + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); };
+const fch = f => f && /^\d{4}-\d{2}-\d{2}/.test(f) ? f.slice(8, 10) + '/' + f.slice(5, 7) + '/' + f.slice(0, 4) : (f || '');
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const esAdmin = () => user && user.rol === 'admin';
+const apiUrl = () => API_URL_FIJA || localStorage.getItem('biru_api') || '';
+const prod = c => db.Productos.find(p => p.codigo === c);
+const nomProd = c => (prod(c) || {}).nombre || ('Código ' + c);
+const activos = () => db.Productos.filter(p => p.activo !== 'no');
+function pnum(s) {
+  s = String(s ?? '').replace(/[$\s]/g, '');
+  if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '').replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  else s = s.replace(',', '.');
+  const n = Number(s); return isFinite(n) ? n : 0;
+}
+function toast(m, err) {
+  const t = $('#toast'); t.textContent = m; t.className = err ? 'err' : ''; t.style.display = 'block';
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = 'none', err ? 5000 : 2500);
+}
+const ocupado = b => $('#carga').style.display = b ? 'flex' : 'none';
+const optsLocal = (sel, todos) => (todos ? `<option value="">Ambos locales</option>` : '') +
+  Object.entries(LOCALES).map(([k, v]) => `<option value="${k}" ${sel === k ? 'selected' : ''}>${h(v)}</option>`).join('');
+const optsProd = sel => activos().slice().sort((a, b) => a.nombre.localeCompare(b.nombre))
+  .map(p => `<option value="${h(p.codigo)}" ${sel === p.codigo ? 'selected' : ''}>${h(p.nombre)} (${h(p.codigo)})</option>`).join('');
+function descargar(nombre, filas) {
+  const csv = '﻿' + filas.map(f => f.map(c => { c = String(c ?? ''); return /[";\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(';')).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = nombre; a.click();
+}
+
+/* ---------- Datos: conexión con Google Sheets o modo demo ---------- */
+function normalizar(d) {
+  TABLAS.forEach(t => {
+    d[t] = d[t] || [];
+    d[t].forEach(r => {
+      (NUMS[t] || []).forEach(c => r[c] = pnum(r[c]));
+      if ('items' in r && typeof r.items === 'string') { try { r.items = JSON.parse(r.items || '[]'); } catch (e) { r.items = []; } }
+    });
+  });
+  return d;
+}
+function aplicarOps(d, ops) {
+  ops.forEach(o => {
+    const k = CLAVE[o.t] || 'id', T = d[o.t];
+    if (o.op === 'add') T.push({ ...o.row });
+    else {
+      const i = T.findIndex(r => String(r[k]) === String(o.id)); if (i < 0) return;
+      if (o.op === 'del') T.splice(i, 1);
+      else { const f = { ...o.f }; if (o.t === 'Usuarios' && !f.pin) delete f.pin; Object.assign(T[i], f); }
+    }
+  });
+}
+async function llamar(c, ops) {
+  if (!apiUrl()) {
+    let d = JSON.parse(localStorage.getItem('biru_demo') || 'null') || semilla();
+    const u = d.Usuarios.find(x => x.usuario.toLowerCase() === String(c.usuario).toLowerCase() && String(x.pin) === String(c.pin));
+    if (!u) throw new Error('Usuario o PIN incorrecto');
+    aplicarOps(d, ops || []);
+    localStorage.setItem('biru_demo', JSON.stringify(d));
+    return { user: { ...u, pin: '' }, db: JSON.parse(JSON.stringify(d)) };
+  }
+  let r;
+  try {
+    r = await fetch(apiUrl(), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ usuario: c.usuario, pin: c.pin, ops: ops || [] }) });
+  } catch (e) { throw new Error('Sin conexión con Google Sheets. Revisa el internet o la URL.'); }
+  let j; try { j = await r.json(); } catch (e) { throw new Error('La URL de conexión no respondió como se esperaba.'); }
+  if (!j.ok) throw new Error(j.error || 'Error en el servidor');
+  return j;
+}
+async function guardar(ops, msg) {
+  ocupado(true);
+  try {
+    ops.forEach(o => { if (o.row && o.row.items) o.row = { ...o.row, items: JSON.stringify(o.row.items) }; });
+    const j = await llamar(cred, ops);
+    db = normalizar(j.db); user = j.user;
+    cerrarModal(); if (msg) toast(msg); pintar(); return true;
+  } catch (e) { toast(e.message, true); return false; }
+  finally { ocupado(false); }
+}
+const mov = (fecha, local, codigo, tipo, cantidad, nota) => ({
+  op: 'add', t: 'Movimientos',
+  row: { id: uid(), fecha, local, codigo, tipo, cantidad, monto: tipo === 'venta' ? Math.round(cantidad * ((prod(codigo) || {}).precio || 0)) : 0, nota: nota || '', usuario: user.usuario }
+});
+
+/* ---------- Cálculos ---------- */
+function stocks() {
+  const S = {}; Object.keys(LOCALES).forEach(l => S[l] = {});
+  db.Movimientos.forEach(m => { if (!S[m.local] || !TIPOS[m.tipo]) return; S[m.local][m.codigo] = (S[m.local][m.codigo] || 0) + TIPOS[m.tipo].s * m.cantidad; });
+  Object.values(S).forEach(o => Object.keys(o).forEach(c => o[c] = Math.round(o[c] * 1000) / 1000));
+  return S;
+}
+function estadoStock(p, s) {
+  if (s <= 0) return ['cr', 'Sin stock'];
+  if (p.stockMin && s < p.stockMin) return ['cr', 'Bajo mínimo'];
+  if (p.stockMax && s > p.stockMax) return ['av', 'Exceso'];
+  return ['ok', 'Normal'];
+}
+function alertas(loc) {
+  const S = stocks(), bajos = [], exceso = [];
+  Object.keys(LOCALES).filter(l => !loc || l === loc).forEach(l => activos().forEach(p => {
+    const s = S[l][p.codigo] || 0, e = estadoStock(p, s)[0];
+    if (e === 'cr') bajos.push({ p, l, s }); else if (e === 'av') exceso.push({ p, l, s });
+  }));
+  return { bajos, exceso };
+}
+function ultimoPrecio(c) { let u = null; db.Precios.forEach(r => { if (r.codigo === c && (!u || r.fecha >= u.fecha)) u = r; }); return u; }
+const preciosPend = () => activos().map(p => ultimoPrecio(p.codigo)).filter(u => u && (!u.balanza1 || !u.balanza2));
+const pedidosAbiertos = () => db.Pedidos.filter(p => ['solicitado', 'aprobado', 'en camino'].includes(p.estado));
+const llegadasProx = () => db.Llegadas.filter(l => l.estado === 'pendiente' && l.fecha <= masDias(hoy(), 7));
+
+/* ---------- Modal ---------- */
+function modal(titulo, cuerpo, alGuardar, txt) {
+  $('#modal').innerHTML = `<div class="velo"><form class="dlg" autocomplete="off">
+    <header><b>${h(titulo)}</b><button type="button" onclick="cerrarModal()" aria-label="Cerrar">×</button></header>
+    <div class="cuerpo">${cuerpo}</div>
+    <footer><button type="button" class="btn sec" onclick="cerrarModal()">Cancelar</button>${alGuardar ? `<button class="btn">${h(txt || 'Guardar')}</button>` : ''}</footer></form></div>`;
+  const f = $('#modal form');
+  f.onsubmit = e => { e.preventDefault(); alGuardar && alGuardar(Object.fromEntries(new FormData(f))); };
+  const p = f.querySelector('.cuerpo input,.cuerpo select,.cuerpo textarea'); p && p.focus();
+}
+const cerrarModal = () => $('#modal').innerHTML = '';
+/* Confirmación propia: no depende de la ventana confirm() del navegador, que algunos bloquean. */
+function confirmar(msg, alAceptar, txt) {
+  const d = document.createElement('div'); d.className = 'velo'; d.style.zIndex = 60;
+  d.innerHTML = `<div class="dlg" style="max-width:420px;margin-top:12vh" role="alertdialog"><div class="cuerpo" style="white-space:pre-line">${h(msg)}</div>
+    <footer><button type="button" class="btn sec">Cancelar</button><button type="button" class="btn">${h(txt || 'Confirmar')}</button></footer></div>`;
+  const [no, si] = d.querySelectorAll('button');
+  no.onclick = () => d.remove(); si.onclick = () => { d.remove(); alAceptar(); };
+  document.body.append(d); si.focus();
+}
+function addItem() {
+  const S = stocks(), d = document.createElement('div'); d.className = 'item';
+  d.innerHTML = `<select class="ic">${activos().slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).map(p =>
+    `<option value="${h(p.codigo)}">${h(p.nombre)} — ${Object.keys(LOCALES).map(l => l + ': ' + num(S[l][p.codigo] || 0)).join(' / ')}</option>`).join('')}</select>
+    <input class="iq" type="text" inputmode="decimal" placeholder="Cantidad"><button type="button" onclick="this.parentNode.remove()" aria-label="Quitar">✕</button>`;
+  $('#items').append(d);
+}
+const itemsHTML = () => `<div class="campo"><label>Productos (se muestra el stock actual por local)</label><div id="items"></div>
+  <button type="button" class="btn sec mini" onclick="addItem()">+ Agregar producto</button></div>`;
+const leerItems = () => [...document.querySelectorAll('#items .item')].map(d => ({ codigo: d.querySelector('.ic').value, cantidad: pnum(d.querySelector('.iq').value) })).filter(i => i.codigo && i.cantidad > 0);
+const listaItems = it => `<ul>${(it || []).map(i => { const p = prod(i.codigo) || {}; return `<li><b>${num(i.cantidad)} ${h(p.unidad || '')}</b> · ${h(nomProd(i.codigo))}${p.ubicacion ? ` <span class="muted">→ ubicación ${h(p.ubicacion)}</span>` : ''}</li>`; }).join('')}</ul>`;
+
+/* ---------- Ingreso ---------- */
+function pantallaLogin(msg) {
+  $('#raiz').innerHTML = `<div class="login"><form class="caja" id="fLogin">
+    <img class="logo" src="logo.jpg" alt="" onerror="this.style.visibility='hidden'">
+    <h1 class="marca"><small>COMERCIAL</small>BIRU</h1><p class="sub">Inventario, pedidos y ventas</p>
+    ${apiUrl() ? '' : '<div class="aviso"><b>Modo demostración.</b> Los datos son de ejemplo y se guardan solo en este equipo. Usuario: <b>admin</b> · PIN: <b>1234</b></div>'}
+    ${msg ? `<div class="aviso">${h(msg)}</div>` : ''}
+    <div class="campo"><label>Usuario</label><input name="usuario" required autocapitalize="none"></div>
+    <div class="campo"><label>PIN</label><input name="pin" type="password" inputmode="numeric" required></div>
+    <button class="btn" style="width:100%">Ingresar</button>
+    <details class="con"><summary>Conexión con Google Sheets</summary>
+      <p>Pega la URL de la aplicación web de Apps Script. Déjala vacía para usar el modo demostración.</p>
+      <input id="urlApi" placeholder="https://script.google.com/macros/s/…/exec" value="${h(localStorage.getItem('biru_api') || '')}" style="width:100%" ${API_URL_FIJA ? 'disabled' : ''}>
+      <button type="button" class="btn sec mini" style="margin-top:6px" onclick="guardarUrl($('#urlApi').value)">Guardar conexión</button>
+    </details></form></div>`;
+  $('#fLogin').onsubmit = async e => {
+    e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
+    await entrar({ usuario: f.usuario.trim(), pin: f.pin.trim() });
+  };
+}
+function guardarUrl(u) {
+  u = (u || '').trim();
+  if (u && !/^https:\/\/script\.google\.com\//.test(u)) return toast('La URL debe empezar con https://script.google.com/', true);
+  u ? localStorage.setItem('biru_api', u) : localStorage.removeItem('biru_api');
+  localStorage.removeItem('biru_sesion'); user = null; toast(u ? 'Conexión guardada' : 'Modo demostración activado'); pantallaLogin();
+}
+async function entrar(c, silencioso) {
+  ocupado(true); $('#carga span').textContent = 'Cargando…';
+  try {
+    const j = await llamar(c, []); cred = c; user = j.user; db = normalizar(j.db);
+    localStorage.setItem('biru_sesion', JSON.stringify(c));
+    est.pMes = hoy().slice(0, 7); est.vFecha = hoy(); est.vLocal = user.local || 'L1';
+    pintar();
+  } catch (e) { pantallaLogin(silencioso ? '' : e.message); if (!silencioso) toast(e.message, true); }
+  finally { ocupado(false); $('#carga span').textContent = 'Guardando…'; }
+}
+function salir() { localStorage.removeItem('biru_sesion'); user = null; cred = null; pantallaLogin(); }
+async function recargar() { ocupado(true); try { const j = await llamar(cred, []); db = normalizar(j.db); pintar(); toast('Datos actualizados'); } catch (e) { toast(e.message, true); } ocupado(false); }
+
+/* ---------- Estructura general ---------- */
+function ir(v) { vista = v; pintar(); window.scrollTo(0, 0); }
+function pintar() {
+  graficos.forEach(g => g.destroy()); graficos = [];
+  const cont = { pedidos: pedidosAbiertos().length, llegadas: llegadasProx().length, precios: preciosPend().length, inventario: alertas().bajos.length };
+  const menu = VISTAS.filter(([k]) => esAdmin() || k !== 'usuarios');
+  $('#raiz').innerHTML = `<div class="app">
+    <div class="barra-movil"><button onclick="$('.lado').classList.toggle('abierto')" aria-label="Menú">☰</button><b class="marca">COMERCIAL BIRU</b></div>
+    <aside class="lado" onclick="if(event.target.closest('nav button'))this.classList.remove('abierto')">
+      <div class="cab"><img src="logo.jpg" alt="" onerror="this.style.display='none'"><div class="marca"><small>COMERCIAL</small><b>BIRU</b></div></div>
+      <nav>${menu.map(([k, n]) => `<button class="${vista === k ? 'act' : ''}" onclick="ir('${k}')">${n}${cont[k] ? `<span class="cont">${cont[k]}</span>` : ''}</button>`).join('')}</nav>
+      <div class="pie"><b>${h(user.nombre || user.usuario)}</b><span>${esAdmin() ? 'Administrador' : 'Encargado'} · ${h(LOCALES[user.local] || 'Ambos locales')}${apiUrl() ? '' : ' · DEMO'}</span><br>
+        <button onclick="recargar()">Actualizar</button> <button onclick="salir()">Salir</button></div>
+    </aside>
+    <main class="principal" id="main"></main></div>`;
+  $('#main').innerHTML = V[vista]();
+  if (V[vista + '_post']) V[vista + '_post']();
+}
+const cab = (t, sub, acc) => `<div class="titulo"><div><h2>${t}</h2>${sub ? `<p>${sub}</p>` : ''}</div><div class="acciones">${acc || ''}</div></div>`;
+const V = {};
+
+/* ---------- PANEL ---------- */
+V.panel = () => {
+  const loc = est.pLocal, mes = est.pMes;
+  const dPrev = new Date(mes + '-15T12:00:00'); dPrev.setMonth(dPrev.getMonth() - 1); const prev = iso(dPrev).slice(0, 7);
+  const ventas = db.Movimientos.filter(m => m.tipo === 'venta' && (!loc || m.local === loc));
+  const vm = ventas.filter(m => m.fecha.startsWith(mes)), total = vm.reduce((a, m) => a + m.monto, 0);
+  const tope = mes === hoy().slice(0, 7) ? hoy().slice(8, 10) : '31'; // mes en curso: comparar los mismos días
+  const tPrev = ventas.filter(m => m.fecha.startsWith(prev) && m.fecha.slice(8, 10) <= tope).reduce((a, m) => a + m.monto, 0);
+  const dif = tPrev ? Math.round((total - tPrev) / tPrev * 100) : null;
+  const al = alertas(loc), dias = new Set(vm.map(m => m.fecha)).size;
+  const fila = (x, cls, txt) => `<tr><td>${h(x.p.nombre)}</td><td>${h(LOCALES[x.l])}</td><td class="n">${num(x.s)} ${h(x.p.unidad)}</td><td class="n">${num(x.p.stockMin)} – ${num(x.p.stockMax)}</td><td><span class="et ${cls}">${txt}</span></td></tr>`;
+  V._panel = { vm, mes };
+  return cab('Panel', 'Resumen de ventas y alertas del negocio',
+    `<select onchange="est.pLocal=this.value;pintar()">${optsLocal(loc, true)}</select><input type="month" value="${mes}" onchange="if(this.value){est.pMes=this.value;pintar()}">`) +
+    `<div class="kpis">
+      <div class="kpi"><span>Ventas del mes</span><b>${clp(total)}</b><small>${dif === null ? 'Sin datos del mes anterior' : (dif >= 0 ? '▲ ' : '▼ ') + Math.abs(dif) + '% vs. mismos días del mes anterior'}</small></div>
+      <div class="kpi"><span>Promedio por día</span><b>${clp(dias ? total / dias : 0)}</b><small>${dias} días con ventas</small></div>
+      <div class="kpi"><span>Stock bajo o agotado</span><b>${al.bajos.length}</b><small>productos por reponer</small></div>
+      <div class="kpi"><span>Exceso de stock</span><b>${al.exceso.length}</b><small>sobre el máximo</small></div>
+      <div class="kpi"><span>Llegadas próximas</span><b>${llegadasProx().length}</b><small>en los próximos 7 días</small></div>
+      <div class="kpi"><span>Pedidos abiertos</span><b>${pedidosAbiertos().length}</b><small>entre locales</small></div>
+    </div>
+    ${vm.length ? `<div class="rej">
+      <div class="tarjeta"><h3>Ventas por día</h3><div class="graf"><canvas id="gDia"></canvas></div></div>
+      <div class="tarjeta"><h3>Ventas por categoría</h3><div class="graf"><canvas id="gCat"></canvas></div></div>
+      <div class="tarjeta"><h3>Los 5 más vendidos</h3><div class="graf"><canvas id="gTop"></canvas></div></div>
+      <div class="tarjeta"><h3>Los 5 menos vendidos</h3><div class="graf"><canvas id="gMen"></canvas></div></div>
+    </div>` : `<div class="tarjeta vacio">No hay ventas registradas en este mes. Regístralas en la sección <b>Ventas</b>.</div>`}
+    <div class="tarjeta"><h3>Alertas de stock</h3>${al.bajos.length + al.exceso.length ? `<div class="tabla-wrap"><table>
+      <tr><th>Producto</th><th>Local</th><th class="n">Stock</th><th class="n">Mín – Máx</th><th>Estado</th></tr>
+      ${al.bajos.map(x => fila(x, 'cr', x.s <= 0 ? 'Sin stock' : 'Bajo mínimo')).join('')}${al.exceso.map(x => fila(x, 'av', 'Exceso')).join('')}</table></div>`
+      : '<p class="vacio">Todo el stock está dentro de sus niveles.</p>'}</div>`;
+};
+function barra(id, etiquetas, datos, horiz) {
+  const c = $(id); if (!c) return;
+  if (typeof Chart === 'undefined') { c.parentNode.innerHTML = '<p class="vacio">Los gráficos necesitan conexión a internet.</p>'; return; }
+  const eje = { grid: { color: '#EEECE9' }, border: { display: false }, beginAtZero: true, ticks: { callback: v => corto(v), color: '#6B6B73' } };
+  const cat = { grid: { display: false }, ticks: { color: '#232326', autoSkip: !horiz } };
+  graficos.push(new Chart(c, {
+    type: 'bar', data: { labels: etiquetas, datasets: [{ data: datos, backgroundColor: '#C8202F', hoverBackgroundColor: '#9E1622', borderRadius: 4, maxBarThickness: 26 }] },
+    options: { indexAxis: horiz ? 'y' : 'x', responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => clp(x.raw) } } },
+      scales: horiz ? { x: eje, y: cat } : { x: cat, y: eje } }
+  }));
+}
+V.panel_post = () => {
+  const { vm, mes } = V._panel; if (!vm.length) return;
+  const nd = new Date(+mes.slice(0, 4), +mes.slice(5, 7), 0).getDate(), porDia = Array(nd).fill(0), porCat = {}, porProd = {};
+  activos().forEach(p => porProd[p.codigo] = 0);
+  vm.forEach(m => { porDia[+m.fecha.slice(8, 10) - 1] += m.monto; const p = prod(m.codigo) || {}; const c = p.categoria || 'Sin categoría'; porCat[c] = (porCat[c] || 0) + m.monto; porProd[m.codigo] = (porProd[m.codigo] || 0) + m.monto; });
+  barra('#gDia', porDia.map((_, i) => i + 1), porDia);
+  const cs = Object.entries(porCat).sort((a, b) => b[1] - a[1]); barra('#gCat', cs.map(x => x[0]), cs.map(x => x[1]), true);
+  const ps = Object.entries(porProd).sort((a, b) => b[1] - a[1]);
+  barra('#gTop', ps.slice(0, 5).map(x => nomProd(x[0])), ps.slice(0, 5).map(x => x[1]), true);
+  const me = ps.slice(-5).reverse(); barra('#gMen', me.map(x => nomProd(x[0])), me.map(x => x[1]), true);
+};
+
+/* ---------- VENTAS ---------- */
+V.ventas = () => {
+  const f = est.vFecha, l = est.vLocal;
+  const delDia = db.Movimientos.filter(m => m.tipo === 'venta' && m.fecha === f && m.local === l), ya = {};
+  delDia.forEach(m => ya[m.codigo] = (ya[m.codigo] || 0) + m.cantidad);
+  const total = delDia.reduce((a, m) => a + m.monto, 0);
+  return cab('Ventas', 'Registra las cantidades vendidas en el día; el stock se descuenta solo',
+    `<button class="btn sec" onclick="pegarVentas()">Pegar reporte de balanza</button><button class="btn" onclick="guardarVentas()">Guardar ventas</button>`) +
+    `<div class="filtros"><label>Fecha <input type="date" value="${f}" max="${hoy()}" onchange="if(this.value){est.vFecha=this.value;pintar()}"></label>
+      <label>Local <select onchange="est.vLocal=this.value;pintar()">${optsLocal(l)}</select></label>
+      <span class="et gr">Ya registrado este día: ${clp(total)}</span></div>
+    <div class="tarjeta"><div class="tabla-wrap"><table id="tVentas">
+      <tr><th>Código</th><th>Producto</th><th class="n">Precio</th><th class="n">Ya registrado</th><th>Cantidad a agregar</th></tr>
+      ${activos().map(p => `<tr><td>${h(p.codigo)}</td><td>${h(p.nombre)}</td><td class="n">${clp(p.precio)} / ${h(p.unidad)}</td><td class="n">${ya[p.codigo] ? num(ya[p.codigo]) + ' ' + h(p.unidad) : '—'}</td>
+        <td><input type="text" inputmode="decimal" data-cod="${h(p.codigo)}" style="width:110px" placeholder="0"> ${h(p.unidad)}</td></tr>`).join('') || '<tr><td colspan="5" class="vacio">Primero carga productos.</td></tr>'}
+    </table></div></div>`;
+};
+function guardarVentas() {
+  const ops = [...document.querySelectorAll('#tVentas input')].map(i => [i.dataset.cod, pnum(i.value)]).filter(x => x[1] > 0)
+    .map(([c, q]) => mov(est.vFecha, est.vLocal, c, 'venta', q, 'Venta del día'));
+  if (!ops.length) return toast('Ingresa al menos una cantidad', true);
+  guardar(ops, `Ventas guardadas: ${ops.length} productos`);
+}
+function pegarVentas() {
+  modal('Pegar reporte de balanza', `<p class="muted">Copia desde Excel o desde el reporte de la balanza dos columnas: <b>código</b> y <b>cantidad vendida</b>. Una línea por producto.</p>
+    <div class="campo"><textarea name="txt" rows="9" placeholder="101	12,5&#10;102	8"></textarea></div>`, f => {
+    let ok = 0, no = [];
+    f.txt.split(/\r?\n/).forEach(ln => {
+      const c = ln.trim().split(/\t|;|\s+/).map(x => x.trim()).filter(Boolean); if (c.length < 2) return;
+      const i = document.querySelector(`#tVentas input[data-cod="${CSS.escape(c[0])}"]`);
+      if (i) { i.value = c[c.length - 1]; ok++; } else no.push(c[0]);
+    });
+    cerrarModal(); toast(`${ok} productos cargados${no.length ? '. Códigos no encontrados: ' + no.join(', ') : ''}. Revisa y pulsa Guardar ventas.`, no.length > 0);
+  }, 'Cargar en la tabla');
+}
+
+/* ---------- INVENTARIO ---------- */
+V.inventario = () => {
+  const S = stocks(), ls = Object.keys(LOCALES);
+  let cuerpo;
+  if (est.invTab === 'stock') {
+    const filas = activos().filter(p => !est.q || (p.nombre + ' ' + p.codigo + ' ' + p.categoria).toLowerCase().includes(est.q.toLowerCase()));
+    cuerpo = `<div class="filtros"><input type="search" placeholder="Buscar producto…" value="${h(est.q)}" oninput="est.q=this.value;refrescar(this)"></div>
+    <div class="tabla-wrap"><table><tr><th>Código</th><th>Producto</th><th>Categoría</th>${ls.map(l => `<th class="n">${h(LOCALES[l])}</th><th>Estado</th>`).join('')}<th class="n">Total</th><th class="n">Mín – Máx</th></tr>
+      ${filas.map(p => `<tr><td>${h(p.codigo)}</td><td>${h(p.nombre)}</td><td>${h(p.categoria)}</td>${ls.map(l => { const s = S[l][p.codigo] || 0, e = estadoStock(p, s); return `<td class="n">${num(s)} ${h(p.unidad)}</td><td><span class="et ${e[0]}">${e[1]}</span></td>`; }).join('')}
+        <td class="n"><b>${num(ls.reduce((a, l) => a + (S[l][p.codigo] || 0), 0))}</b></td><td class="n">${num(p.stockMin)} – ${num(p.stockMax)}</td></tr>`).join('') || '<tr><td colspan="9" class="vacio">Sin productos.</td></tr>'}</table></div>
+    <p class="muted">Mínimo y máximo aplican a cada local por separado.</p>`;
+  } else {
+    const ms = db.Movimientos.filter(m => (!est.hTipo || m.tipo === est.hTipo) && (!est.hLocal || m.local === est.hLocal))
+      .sort((a, b) => b.fecha.localeCompare(a.fecha) || String(b.id).localeCompare(String(a.id))).slice(0, 200);
+    cuerpo = `<div class="filtros"><select onchange="est.hTipo=this.value;pintar()"><option value="">Todos los tipos</option>${Object.entries(TIPOS).map(([k, t]) => `<option value="${k}" ${est.hTipo === k ? 'selected' : ''}>${t.n}</option>`).join('')}</select>
+      <select onchange="est.hLocal=this.value;pintar()">${optsLocal(est.hLocal, true)}</select><span class="muted">Últimos 200 movimientos</span></div>
+    <div class="tabla-wrap"><table><tr><th>Fecha</th><th>Local</th><th>Producto</th><th>Tipo</th><th class="n">Cantidad</th><th>Nota</th><th>Usuario</th><th></th></tr>
+      ${ms.map(m => { const c = TIPOS[m.tipo].s * m.cantidad; return `<tr><td>${fch(m.fecha)}</td><td>${h(LOCALES[m.local])}</td><td>${h(nomProd(m.codigo))}</td><td>${TIPOS[m.tipo].n}</td><td class="n">${c > 0 ? '+' : ''}${num(c)}</td><td>${h(m.nota)}</td><td>${h(m.usuario)}</td>
+        <td>${esAdmin() ? `<button class="btn sec mini" data-id="${h(m.id)}" onclick="borrarMov(this.dataset.id)">Eliminar</button>` : ''}</td></tr>`; }).join('') || '<tr><td colspan="8" class="vacio">Sin movimientos.</td></tr>'}</table></div>`;
+  }
+  return cab('Inventario', 'Stock por local, calculado a partir de los movimientos',
+    `<button class="btn sec" onclick="exportarStock()">Exportar</button><button class="btn sec" onclick="formConteo()">Conteo físico</button><button class="btn" onclick="formMov()">Registrar movimiento</button>`) +
+    `<div class="tabs"><button class="${est.invTab === 'stock' ? 'act' : ''}" onclick="est.invTab='stock';pintar()">Stock actual</button><button class="${est.invTab !== 'stock' ? 'act' : ''}" onclick="est.invTab='hist';pintar()">Historial de movimientos</button></div>
+    <div class="tarjeta">${cuerpo}</div>`;
+};
+function refrescar(inp) { const pos = inp.selectionStart; pintar(); const n = $('#main input[type=search]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }
+function formMov() {
+  modal('Registrar movimiento', `<div class="dos"><div class="campo"><label>Tipo</label><select name="tipo"><option value="entrada">Entrada (llegó mercadería)</option><option value="merma">Merma (pérdida, vencido)</option><option value="venta">Venta</option></select></div>
+    <div class="campo"><label>Local</label><select name="local">${optsLocal(user.local || 'L1')}</select></div></div>
+    <div class="campo"><label>Producto</label><select name="codigo">${optsProd()}</select></div>
+    <div class="dos"><div class="campo"><label>Cantidad</label><input name="cantidad" inputmode="decimal" required></div><div class="campo"><label>Fecha</label><input type="date" name="fecha" value="${hoy()}" required></div></div>
+    <div class="campo"><label>Nota (opcional)</label><input name="nota"></div>`, f => {
+    const q = pnum(f.cantidad); if (!(q > 0) || !f.codigo) return toast('Indica producto y una cantidad mayor a cero', true);
+    guardar([mov(f.fecha, f.local, f.codigo, f.tipo, q, f.nota)], 'Movimiento registrado');
+  });
+}
+function formConteo() {
+  modal('Conteo físico', `<p class="muted">Escribe lo que contaste realmente. El sistema ajusta el stock y deja registrada la diferencia.</p>
+    <div class="dos"><div class="campo"><label>Local</label><select name="local">${optsLocal(user.local || 'L1')}</select></div><div class="campo"><label>Producto</label><select name="codigo">${optsProd()}</select></div></div>
+    <div class="campo"><label>Cantidad contada</label><input name="cantidad" inputmode="decimal" required></div>`, f => {
+    const real = pnum(f.cantidad), act = stocks()[f.local][f.codigo] || 0, dif = Math.round((real - act) * 1000) / 1000;
+    if (f.cantidad.trim() === '' || real < 0) return toast('Indica la cantidad contada', true);
+    if (!dif) { cerrarModal(); return toast('El conteo coincide con el sistema'); }
+    guardar([mov(hoy(), f.local, f.codigo, 'ajuste', dif, `Conteo: sistema ${num(act)}, real ${num(real)}`)], `Stock ajustado (${dif > 0 ? '+' : ''}${num(dif)})`);
+  }, 'Ajustar stock');
+}
+function borrarMov(id) { confirmar('¿Eliminar este movimiento? El stock se recalculará.', () => guardar([{ op: 'del', t: 'Movimientos', id }], 'Movimiento eliminado'), 'Eliminar'); }
+function exportarStock() {
+  const S = stocks(), ls = Object.keys(LOCALES);
+  descargar('stock_' + hoy() + '.csv', [['Codigo', 'Producto', 'Categoria', 'Unidad', ...ls.map(l => LOCALES[l]), 'Minimo', 'Maximo', 'Ubicacion'],
+    ...activos().map(p => [p.codigo, p.nombre, p.categoria, p.unidad, ...ls.map(l => String(S[l][p.codigo] || 0).replace('.', ',')), p.stockMin, p.stockMax, p.ubicacion])]);
+}
+
+/* ---------- PRODUCTOS ---------- */
+V.productos = () => {
+  const cats = [...new Set(db.Productos.map(p => p.categoria).filter(Boolean))].sort();
+  const filas = db.Productos.filter(p => (!est.cat || p.categoria === est.cat) && (!est.q || (p.nombre + ' ' + p.codigo).toLowerCase().includes(est.q.toLowerCase())));
+  return cab('Productos', `${db.Productos.length} productos en el catálogo`,
+    `<button class="btn sec" onclick="exportarProd()">Exportar</button>${esAdmin() ? `<button class="btn sec" onclick="formImportar()">Carga masiva</button><button class="btn" onclick="formProd()">Nuevo producto</button>` : ''}`) +
+    `<div class="tarjeta"><div class="filtros"><input type="search" placeholder="Buscar por nombre o código…" value="${h(est.q)}" oninput="est.q=this.value;refrescar(this)">
+      <select onchange="est.cat=this.value;pintar()"><option value="">Todas las categorías</option>${cats.map(c => `<option ${est.cat === c ? 'selected' : ''}>${h(c)}</option>`).join('')}</select></div>
+    <div class="tabla-wrap"><table><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Unidad</th><th class="n">Precio</th><th class="n">Mín</th><th class="n">Máx</th><th>Ubicación</th><th>Estado</th><th></th></tr>
+      ${filas.map(p => `<tr><td>${h(p.codigo)}</td><td>${h(p.nombre)}</td><td>${h(p.categoria)}</td><td>${h(p.unidad)}</td><td class="n">${clp(p.precio)}</td><td class="n">${num(p.stockMin)}</td><td class="n">${num(p.stockMax)}</td><td>${h(p.ubicacion)}</td>
+        <td><span class="et ${p.activo === 'no' ? 'gr' : 'ok'}">${p.activo === 'no' ? 'Inactivo' : 'Activo'}</span></td>
+        <td>${esAdmin() ? `<button class="btn sec mini" data-id="${h(p.codigo)}" onclick="formProd(this.dataset.id)">Editar</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="10" class="vacio">No hay productos. Usa «Carga masiva» para subirlos desde Excel.</td></tr>'}
+    </table></div></div>`;
+};
+function formProd(cod) {
+  const p = cod ? prod(cod) : { unidad: 'kg', activo: 'si' };
+  modal(cod ? 'Editar producto' : 'Nuevo producto', `<div class="dos"><div class="campo"><label>Código (el mismo de la balanza)</label><input name="codigo" value="${h(p.codigo)}" required ${cod ? 'readonly' : ''}></div>
+    <div class="campo"><label>Nombre</label><input name="nombre" value="${h(p.nombre)}" required></div></div>
+    <div class="dos"><div class="campo"><label>Categoría</label><input name="categoria" value="${h(p.categoria)}" list="dlCat"><datalist id="dlCat">${[...new Set(db.Productos.map(x => x.categoria))].map(c => `<option>${h(c)}</option>`).join('')}</datalist></div>
+    <div class="campo"><label>Unidad</label><select name="unidad">${['kg', 'un', 'paq', 'caja', 'lt'].map(u => `<option ${p.unidad === u ? 'selected' : ''}>${u}</option>`).join('')}</select></div></div>
+    <div class="dos"><div class="campo"><label>Stock mínimo por local</label><input name="stockMin" inputmode="decimal" value="${h(p.stockMin ?? '')}"></div><div class="campo"><label>Stock máximo por local</label><input name="stockMax" inputmode="decimal" value="${h(p.stockMax ?? '')}"></div></div>
+    <div class="dos"><div class="campo"><label>Ubicación en almacén</label><input name="ubicacion" value="${h(p.ubicacion)}" placeholder="Ej.: A1, Cámara 2"></div>
+    ${cod ? `<div class="campo"><label>Estado</label><select name="activo"><option value="si">Activo</option><option value="no" ${p.activo === 'no' ? 'selected' : ''}>Inactivo (ya no se vende)</option></select></div>`
+      : `<div class="campo"><label>Precio inicial</label><input name="precio" inputmode="decimal" required></div>`}</div>
+    ${cod ? '<p class="muted">El precio se cambia en la sección Precios, para que quede en el historial.</p>' : ''}`, f => {
+    const r = { nombre: f.nombre.trim(), categoria: f.categoria.trim(), unidad: f.unidad, stockMin: pnum(f.stockMin), stockMax: pnum(f.stockMax), ubicacion: f.ubicacion.trim() };
+    if (cod) return guardar([{ op: 'upd', t: 'Productos', id: cod, f: { ...r, activo: f.activo } }], 'Producto actualizado');
+    const c = f.codigo.trim(); if (prod(c)) return toast('Ya existe un producto con ese código', true);
+    guardar([{ op: 'add', t: 'Productos', row: { codigo: c, ...r, precio: pnum(f.precio), activo: 'si' } }, opPrecio(c, 0, pnum(f.precio))], 'Producto creado');
+  });
+}
+const opPrecio = (c, ant, nue) => ({ op: 'add', t: 'Precios', row: { id: uid(), fecha: hoy(), codigo: c, anterior: ant, nuevo: nue, usuario: user.usuario, balanza1: '', balanza2: '' } });
+const COLS_IMP = ['codigo', 'nombre', 'categoria', 'unidad', 'precio', 'stockMin', 'stockMax', 'ubicacion'];
+function formImportar() {
+  modal('Carga masiva de productos', `<p class="muted">Copia las filas desde Excel y pégalas aquí, o elige un archivo CSV. Columnas, en este orden:<br><b>código · nombre · categoría · unidad · precio · stock mínimo · stock máximo · ubicación</b><br>Si el código ya existe, el producto se actualiza.</p>
+    <div class="campo"><textarea name="txt" rows="9" placeholder="101	Lomo vetado	Vacuno	kg	15990	5	40	A1"></textarea></div>
+    <div class="acciones"><input type="file" accept=".csv,.txt" onchange="leerArchivo(this)"><button type="button" class="btn sec mini" onclick="descargar('plantilla_productos.csv',[COLS_IMP,['101','Lomo vetado','Vacuno','kg','15990','5','40','A1']])">Descargar plantilla</button></div>`, f => {
+    const lineas = f.txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean); if (!lineas.length) return toast('Pega al menos una fila', true);
+    const sep = lineas[0].includes('\t') ? '\t' : lineas[0].includes(';') ? ';' : ',';
+    const ops = [], vistos = new Set(); let nuevos = 0, act = 0;
+    lineas.forEach(l => {
+      const c = l.split(sep).map(x => x.trim().replace(/^"|"$/g, '')); const cod = c[0];
+      if (!cod || !c[1] || /^c[oó]digo$/i.test(cod) || vistos.has(cod)) return; vistos.add(cod);
+      const r = { nombre: c[1], categoria: c[2] || '', unidad: c[3] || 'un', precio: pnum(c[4]), stockMin: pnum(c[5]), stockMax: pnum(c[6]), ubicacion: c[7] || '' };
+      const ex = prod(cod);
+      if (ex) { act++; ops.push({ op: 'upd', t: 'Productos', id: cod, f: r }); if (ex.precio !== r.precio) ops.push(opPrecio(cod, ex.precio, r.precio)); }
+      else { nuevos++; ops.push({ op: 'add', t: 'Productos', row: { codigo: cod, ...r, activo: 'si' } }, opPrecio(cod, 0, r.precio)); }
+    });
+    if (!ops.length) return toast('No se reconoció ninguna fila válida', true);
+    guardar(ops, `Carga lista: ${nuevos} nuevos, ${act} actualizados`);
+  }, 'Cargar productos');
+}
+function leerArchivo(inp) { const a = inp.files[0]; if (!a) return; const r = new FileReader(); r.onload = () => $('#modal textarea').value = r.result; r.readAsText(a); }
+function exportarProd() { descargar('productos_' + hoy() + '.csv', [COLS_IMP, ...db.Productos.map(p => COLS_IMP.map(c => p[c]))]); }
+
+/* ---------- PEDIDOS ENTRE LOCALES ---------- */
+const EST_PED = { solicitado: 'av', aprobado: 'in', 'en camino': 'in', recibido: 'ok', rechazado: 'gr' };
+V.pedidos = () => {
+  const ps = db.Pedidos.slice().sort((a, b) => String(b.id).localeCompare(String(a.id)));
+  const ficha = p => `<div class="ficha"><div class="sup"><div><b>${h(LOCALES[p.solicita])}</b> pide a <b>${h(LOCALES[p.despacha])}</b> <span class="muted">· ${fch(p.fecha)} · por ${h(p.usuario)}</span></div><span class="et ${EST_PED[p.estado] || 'gr'}">${h(p.estado)}</span></div>
+    ${listaItems(p.items)}${p.nota ? `<p class="muted">Nota: ${h(p.nota)}</p>` : ''}
+    <div class="acciones" data-id="${h(p.id)}">${p.estado === 'solicitado' ? (esAdmin() ? `<button class="btn mini" onclick="estPedido(this,'aprobado')">Aprobar</button><button class="btn sec mini" onclick="estPedido(this,'rechazado')">Rechazar</button>` : '<span class="muted">Esperando aprobación del administrador</span>') : ''}
+      ${p.estado === 'aprobado' ? `<button class="btn mini" onclick="estPedido(this,'en camino')">Despachar (sale de ${h(LOCALES[p.despacha])})</button>` : ''}
+      ${p.estado === 'en camino' ? `<button class="btn mini" onclick="estPedido(this,'recibido')">Marcar recibido en ${h(LOCALES[p.solicita])}</button>` : ''}</div></div>`;
+  const ab = ps.filter(p => EST_PED[p.estado] !== 'ok' && p.estado !== 'rechazado'), ce = ps.filter(p => !ab.includes(p)).slice(0, 20);
+  return cab('Pedidos entre locales', 'Solicitado → Aprobado → En camino → Recibido', `<button class="btn" onclick="formPedido()">Nuevo pedido</button>`) +
+    `<h3 style="margin-bottom:8px">Abiertos</h3>${ab.map(ficha).join('') || '<div class="tarjeta vacio">No hay pedidos abiertos.</div>'}
+    <h3 style="margin:18px 0 8px">Cerrados recientes</h3>${ce.map(ficha).join('') || '<div class="tarjeta vacio">Aún no hay pedidos cerrados.</div>'}`;
+};
+function formPedido() {
+  const yo = user.local || 'L1', otro = Object.keys(LOCALES).find(l => l !== yo);
+  modal('Nuevo pedido entre locales', `<div class="dos"><div class="campo"><label>Local que pide</label><select name="solicita">${optsLocal(yo)}</select></div><div class="campo"><label>Local que despacha</label><select name="despacha">${optsLocal(otro)}</select></div></div>
+    ${itemsHTML()}<div class="campo"><label>Nota (opcional)</label><input name="nota"></div>`, f => {
+    const it = leerItems(); if (f.solicita === f.despacha) return toast('Los locales deben ser distintos', true);
+    if (!it.length) return toast('Agrega al menos un producto con cantidad', true);
+    const S = stocks()[f.despacha], falta = it.filter(i => (S[i.codigo] || 0) < i.cantidad).map(i => `${nomProd(i.codigo)} (hay ${num(S[i.codigo] || 0)})`);
+    const crear = () => guardar([{ op: 'add', t: 'Pedidos', row: { id: uid(), fecha: hoy(), solicita: f.solicita, despacha: f.despacha, items: it, estado: 'solicitado', nota: f.nota, usuario: user.usuario, actualizado: hoy() } }], 'Pedido creado');
+    if (falta.length) confirmar(`${LOCALES[f.despacha]} no tiene stock suficiente de:\n- ${falta.join('\n- ')}\n\n¿Crear el pedido de todas formas?`, crear, 'Crear igual'); else crear();
+  }, 'Crear pedido'); addItem();
+}
+function estPedido(btn, estado) {
+  const id = btn.parentNode.dataset.id, p = db.Pedidos.find(x => x.id === id); if (!p) return;
+  const ops = [{ op: 'upd', t: 'Pedidos', id, f: { estado, actualizado: hoy() } }];
+  if (estado === 'en camino') p.items.forEach(i => ops.push(mov(hoy(), p.despacha, i.codigo, 'traslado-salida', i.cantidad, 'Pedido a ' + LOCALES[p.solicita])));
+  if (estado === 'recibido') p.items.forEach(i => ops.push(mov(hoy(), p.solicita, i.codigo, 'traslado-entrada', i.cantidad, 'Pedido desde ' + LOCALES[p.despacha])));
+  guardar(ops, 'Pedido: ' + estado);
+}
+
+/* ---------- LLEGADAS DE PROVEEDORES ---------- */
+V.llegadas = () => {
+  const S = stocks(), t = hoy();
+  const pen = db.Llegadas.filter(l => l.estado === 'pendiente').sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const rec = db.Llegadas.filter(l => l.estado !== 'pendiente').sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 15);
+  const cuando = f => f < t ? ['cr', 'Atrasada'] : f === t ? ['av', 'Hoy'] : f === masDias(t, 1) ? ['av', 'Mañana'] : ['in', 'Programada'];
+  const ficha = l => {
+    const c = l.estado === 'pendiente' ? cuando(l.fecha) : ['ok', 'Recibida'];
+    const exc = l.estado === 'pendiente' ? l.items.filter(i => { const p = prod(i.codigo); return p && p.stockMax && (S[l.local][i.codigo] || 0) + i.cantidad > p.stockMax; }) : [];
+    return `<div class="ficha"><div class="sup"><div><b>${fch(l.fecha)}</b> · ${h(l.proveedor)} → <b>${h(LOCALES[l.local])}</b></div><span class="et ${c[0]}">${c[1]}</span></div>
+      ${listaItems(l.items)}${exc.length ? `<p><span class="et av">Atención</span> Con esta llegada se supera el stock máximo de: ${exc.map(i => h(nomProd(i.codigo))).join(', ')}. Prepara espacio adicional.</p>` : ''}
+      ${l.nota ? `<p class="muted">Nota: ${h(l.nota)}</p>` : ''}
+      ${l.estado === 'pendiente' ? `<div class="acciones" data-id="${h(l.id)}"><button class="btn mini" onclick="recibirLlegada(this)">Marcar recibida (suma al stock)</button><button class="btn sec mini" onclick="borrarLlegada(this)">Eliminar</button></div>` : ''}</div>`;
+  };
+  return cab('Llegadas de mercadería', 'Calendario de entregas de proveedores, para preparar el espacio con tiempo', `<button class="btn" onclick="formLlegada()">Programar llegada</button>`) +
+    `<h3 style="margin-bottom:8px">Pendientes</h3>${pen.map(ficha).join('') || '<div class="tarjeta vacio">No hay llegadas programadas.</div>'}
+    <h3 style="margin:18px 0 8px">Recibidas recientes</h3>${rec.map(ficha).join('') || '<div class="tarjeta vacio">Aún no hay llegadas recibidas.</div>'}`;
+};
+function formLlegada() {
+  const provs = [...new Set(db.Llegadas.map(l => l.proveedor))];
+  modal('Programar llegada', `<div class="dos"><div class="campo"><label>Fecha de llegada</label><input type="date" name="fecha" value="${masDias(hoy(), 1)}" required></div><div class="campo"><label>Local</label><select name="local">${optsLocal(user.local || 'L1')}</select></div></div>
+    <div class="campo"><label>Proveedor</label><input name="proveedor" required list="dlProv"><datalist id="dlProv">${provs.map(p => `<option>${h(p)}</option>`).join('')}</datalist></div>
+    ${itemsHTML()}<div class="campo"><label>Nota (opcional)</label><input name="nota"></div>`, f => {
+    const it = leerItems(); if (!it.length) return toast('Agrega al menos un producto con cantidad', true);
+    guardar([{ op: 'add', t: 'Llegadas', row: { id: uid(), fecha: f.fecha, proveedor: f.proveedor.trim(), local: f.local, items: it, estado: 'pendiente', nota: f.nota, usuario: user.usuario } }], 'Llegada programada');
+  }, 'Programar'); addItem();
+}
+function recibirLlegada(btn) {
+  const id = btn.parentNode.dataset.id, l = db.Llegadas.find(x => String(x.id) === String(id)); if (!l) return toast('No se encontró la llegada. Pulsa Actualizar.', true);
+  confirmar(`¿Confirmas que llegó toda la mercadería de ${l.proveedor}? Se sumará al stock de ${LOCALES[l.local]}.`, () =>
+    guardar([{ op: 'upd', t: 'Llegadas', id, f: { estado: 'recibida', fecha: hoy() } }, ...l.items.map(i => mov(hoy(), l.local, i.codigo, 'entrada', i.cantidad, 'Llegada ' + l.proveedor))], 'Llegada recibida y stock actualizado'), 'Sí, recibida');
+}
+function borrarLlegada(btn) { const id = btn.parentNode.dataset.id; confirmar('¿Eliminar esta llegada programada?', () => guardar([{ op: 'del', t: 'Llegadas', id }], 'Llegada eliminada'), 'Eliminar'); }
+
+/* ---------- PRECIOS ---------- */
+V.precios = () => {
+  const pend = preciosPend().length, ls = Object.keys(LOCALES);
+  const hist = db.Precios.filter(r => r.anterior > 0).sort((a, b) => b.fecha.localeCompare(a.fecha) || String(b.id).localeCompare(String(a.id))).slice(0, 40);
+  return cab('Precios', 'Lista oficial. Cada cambio debe confirmarse en la balanza de cada local') +
+    (pend ? `<div class="aviso"><b>${pend} precio(s) con balanza pendiente.</b> Actualízalos en DigiPixiPro y luego pulsa «Confirmar».</div>` : '') +
+    `<div class="tarjeta"><div class="tabla-wrap"><table><tr><th>Código</th><th>Producto</th><th class="n">Precio vigente</th><th>Último cambio</th>${ls.map(l => `<th>Balanza ${h(LOCALES[l])}</th>`).join('')}<th></th></tr>
+      ${activos().map(p => { const u = ultimoPrecio(p.codigo); return `<tr><td>${h(p.codigo)}</td><td>${h(p.nombre)}</td><td class="n"><b>${clp(p.precio)}</b> / ${h(p.unidad)}</td><td>${u ? fch(u.fecha) : '—'}</td>
+        ${ls.map((l, i) => { const v = u && u['balanza' + (i + 1)]; return `<td>${!u ? '—' : v ? `<span class="et ok" title="${h(v)}">Actualizada</span>` : `<span class="et cr">Pendiente</span> <button class="btn sec mini" data-id="${h(u.id)}" onclick="confBalanza(this.dataset.id,${i + 1})">Confirmar</button>`}</td>`; }).join('')}
+        <td>${esAdmin() ? `<button class="btn mini" data-id="${h(p.codigo)}" onclick="formPrecio(this.dataset.id)">Cambiar precio</button>` : ''}</td></tr>`; }).join('') || '<tr><td colspan="7" class="vacio">Sin productos.</td></tr>'}
+    </table></div></div>
+    <div class="tarjeta"><h3>Historial de cambios</h3><div class="tabla-wrap"><table><tr><th>Fecha</th><th>Producto</th><th class="n">Antes</th><th class="n">Ahora</th><th>Cambió</th></tr>
+      ${hist.map(r => `<tr><td>${fch(r.fecha)}</td><td>${h(nomProd(r.codigo))}</td><td class="n">${clp(r.anterior)}</td><td class="n">${clp(r.nuevo)} ${r.nuevo > r.anterior ? '▲' : '▼'}</td><td>${h(r.usuario)}</td></tr>`).join('') || '<tr><td colspan="5" class="vacio">Aún no hay cambios de precio.</td></tr>'}</table></div></div>`;
+};
+function formPrecio(cod) {
+  const p = prod(cod);
+  modal('Cambiar precio', `<p><b>${h(p.nombre)}</b> · precio actual ${clp(p.precio)} / ${h(p.unidad)}</p><div class="campo"><label>Nuevo precio</label><input name="precio" inputmode="decimal" required></div>
+    <p class="muted">Las balanzas de ambos locales quedarán como «Pendiente» hasta que alguien confirme la actualización.</p>`, f => {
+    const n = pnum(f.precio); if (!(n > 0)) return toast('Indica un precio válido', true); if (n === p.precio) return toast('El precio es igual al actual', true);
+    guardar([{ op: 'upd', t: 'Productos', id: cod, f: { precio: n } }, opPrecio(cod, p.precio, n)], 'Precio actualizado');
+  });
+}
+function confBalanza(id, n) { guardar([{ op: 'upd', t: 'Precios', id, f: { ['balanza' + n]: fch(hoy()) + ' · ' + user.usuario } }], 'Balanza confirmada'); }
+
+/* ---------- ALMACÉN ---------- */
+V.almacen = () => {
+  const loc = est.aLocal || user.local || 'L1', S = stocks()[loc], desde = masDias(hoy(), -30), rot = {};
+  db.Movimientos.forEach(m => { if (m.tipo === 'venta' && m.local === loc && m.fecha >= desde) rot[m.codigo] = (rot[m.codigo] || 0) + m.cantidad; });
+  const orden = activos().filter(p => rot[p.codigo] > 0).sort((a, b) => rot[b.codigo] - rot[a.codigo]).map(p => p.codigo);
+  const sug = c => { const i = orden.indexOf(c); if (i < 0) return ['gr', 'Atrás (sin ventas)']; const t = i / orden.length; return t < 1 / 3 ? ['ok', 'Adelante'] : t < 2 / 3 ? ['in', 'Al medio'] : ['gr', 'Atrás']; };
+  const grupos = {}; activos().forEach(p => (grupos[p.ubicacion || 'Sin ubicación asignada'] = grupos[p.ubicacion || 'Sin ubicación asignada'] || []).push(p));
+  return cab('Almacén', 'Dónde va cada producto y qué conviene dejar más a mano', `<select onchange="est.aLocal=this.value;pintar()">${optsLocal(loc)}</select>`) +
+    `<div class="aviso" style="background:var(--in-bg);color:var(--in)">La sugerencia se calcula con las ventas de los últimos 30 días: lo que más sale va adelante. Dentro de cada producto, lo que llegó primero o vence antes siempre se pone delante de lo nuevo.</div>` +
+    Object.keys(grupos).sort().map(g => `<div class="tarjeta"><h3>${h(g)}</h3><div class="tabla-wrap"><table><tr><th>Producto</th><th class="n">Stock</th><th class="n">Vendido en 30 días</th><th>Posición sugerida</th><th></th></tr>
+      ${grupos[g].sort((a, b) => (rot[b.codigo] || 0) - (rot[a.codigo] || 0)).map(p => { const s = sug(p.codigo); return `<tr><td>${h(p.nombre)}</td><td class="n">${num(S[p.codigo] || 0)} ${h(p.unidad)}</td><td class="n">${num(rot[p.codigo] || 0)} ${h(p.unidad)}</td><td><span class="et ${s[0]}">${s[1]}</span></td>
+        <td><button class="btn sec mini" data-id="${h(p.codigo)}" onclick="formUbic(this.dataset.id)">Cambiar ubicación</button></td></tr>`; }).join('')}</table></div></div>`).join('');
+};
+function formUbic(cod) {
+  const p = prod(cod);
+  modal('Ubicación en almacén', `<p><b>${h(p.nombre)}</b></p><div class="campo"><label>Ubicación</label><input name="ubicacion" value="${h(p.ubicacion)}" placeholder="Ej.: A1, Cámara 2, Estante 3" list="dlUb"><datalist id="dlUb">${[...new Set(db.Productos.map(x => x.ubicacion).filter(Boolean))].map(u => `<option>${h(u)}</option>`).join('')}</datalist></div>`,
+    f => guardar([{ op: 'upd', t: 'Productos', id: cod, f: { ubicacion: f.ubicacion.trim() } }], 'Ubicación actualizada'));
+}
+
+/* ---------- USUARIOS ---------- */
+V.usuarios = () => cab('Usuarios', 'Quién puede entrar al sistema y con qué permisos', `<button class="btn" onclick="formUsuario()">Nuevo usuario</button>`) +
+  `<div class="tarjeta"><div class="tabla-wrap"><table><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Local</th><th></th></tr>
+    ${db.Usuarios.map(u => `<tr><td>${h(u.usuario)}</td><td>${h(u.nombre)}</td><td><span class="et ${u.rol === 'admin' ? 'cr' : 'gr'}">${u.rol === 'admin' ? 'Administrador' : 'Encargado'}</span></td><td>${h(LOCALES[u.local] || 'Ambos')}</td>
+      <td class="acciones" data-id="${h(u.usuario)}"><button class="btn sec mini" onclick="formUsuario(this.parentNode.dataset.id)">Editar</button>${u.usuario !== user.usuario ? `<button class="btn sec mini" onclick="borrarUsuario(this.parentNode.dataset.id)">Eliminar</button>` : ''}</td></tr>`).join('')}</table></div>
+  <p class="muted">Administrador: cambia precios, productos y usuarios, y aprueba pedidos. Encargado: registra ventas, movimientos, pedidos, llegadas y confirma balanzas.</p></div>`;
+function formUsuario(id) {
+  const u = id ? db.Usuarios.find(x => x.usuario === id) : { rol: 'encargado', local: 'L1' };
+  modal(id ? 'Editar usuario' : 'Nuevo usuario', `<div class="dos"><div class="campo"><label>Usuario (para ingresar)</label><input name="usuario" value="${h(u.usuario)}" required ${id ? 'readonly' : ''} autocapitalize="none"></div><div class="campo"><label>Nombre</label><input name="nombre" value="${h(u.nombre)}" required></div></div>
+    <div class="dos"><div class="campo"><label>Rol</label><select name="rol"><option value="encargado">Encargado</option><option value="admin" ${u.rol === 'admin' ? 'selected' : ''}>Administrador</option></select></div><div class="campo"><label>Local</label><select name="local">${optsLocal(u.local)}</select></div></div>
+    <div class="campo"><label>PIN ${id ? '(déjalo vacío para no cambiarlo)' : ''}</label><input name="pin" type="password" inputmode="numeric" ${id ? '' : 'required'} minlength="4"></div>`, async f => {
+    const r = { nombre: f.nombre.trim(), rol: f.rol, local: f.local, pin: f.pin.trim() };
+    if (id) {
+      if (id === user.usuario && r.rol !== 'admin') return toast('No puedes quitarte el rol de administrador', true);
+      const propio = id === user.usuario && r.pin, ant = cred.pin;
+      const ok = await guardar([{ op: 'upd', t: 'Usuarios', id, f: r }], 'Usuario actualizado');
+      if (ok && propio) { cred.pin = r.pin; localStorage.setItem('biru_sesion', JSON.stringify(cred)); }
+      return;
+    }
+    const us = f.usuario.trim().toLowerCase(); if (db.Usuarios.some(x => x.usuario.toLowerCase() === us)) return toast('Ese usuario ya existe', true);
+    guardar([{ op: 'add', t: 'Usuarios', row: { usuario: us, ...r } }], 'Usuario creado');
+  });
+}
+function borrarUsuario(id) { confirmar('¿Eliminar al usuario ' + id + '?', () => guardar([{ op: 'del', t: 'Usuarios', id }], 'Usuario eliminado'), 'Eliminar'); }
+
+/* ---------- CONEXIÓN ---------- */
+V.conexion = () => cab('Conexión', 'Dónde se guardan los datos') + `<div class="tarjeta">
+  <p>Estado: ${apiUrl() ? '<span class="et ok">Conectado a Google Sheets</span>' : '<span class="et av">Modo demostración</span> Los datos son de ejemplo y viven solo en este equipo.'}</p>
+  ${API_URL_FIJA ? '<p class="muted">La URL está fijada dentro del archivo de la página.</p>' : `<div class="campo"><label>URL de la aplicación web de Apps Script</label><input id="urlApi2" style="width:100%" value="${h(localStorage.getItem('biru_api') || '')}" placeholder="https://script.google.com/macros/s/…/exec"></div>
+  <div class="acciones"><button class="btn" onclick="guardarUrl($('#urlApi2').value)">Guardar y volver a ingresar</button>${apiUrl() ? `<button class="btn sec" onclick="guardarUrl('')">Volver al modo demostración</button>` : `<button class="btn sec" onclick="confirmar('¿Reiniciar los datos de ejemplo?',()=>{localStorage.removeItem('biru_demo');entrar(cred)},'Reiniciar')">Reiniciar datos de ejemplo</button>`}</div>`}
+  </div>`;
+
+/* ---------- Datos de ejemplo (solo modo demostración) ---------- */
+function semilla() {
+  let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  const P = [['101', 'Lomo vetado', 'Vacuno', 'kg', 15990, 8, 45, 'Cámara 1'], ['102', 'Lomo liso', 'Vacuno', 'kg', 13990, 8, 45, 'Cámara 1'], ['103', 'Posta negra', 'Vacuno', 'kg', 9990, 10, 50, 'Cámara 1'],
+    ['104', 'Carne molida', 'Vacuno', 'kg', 7490, 12, 60, 'Cámara 1'], ['105', 'Asado de tira', 'Vacuno', 'kg', 8990, 8, 40, 'Cámara 1'], ['201', 'Chuleta de cerdo', 'Cerdo', 'kg', 5990, 8, 40, 'Cámara 2'],
+    ['202', 'Costillar de cerdo', 'Cerdo', 'kg', 7990, 6, 35, 'Cámara 2'], ['203', 'Pulpa de cerdo', 'Cerdo', 'kg', 5490, 6, 35, 'Cámara 2'], ['301', 'Pechuga de pollo', 'Pollo', 'kg', 4990, 12, 60, 'Cámara 2'],
+    ['302', 'Trutro entero', 'Pollo', 'kg', 3490, 12, 60, 'Cámara 2'], ['303', 'Pollo entero', 'Pollo', 'kg', 2990, 10, 50, 'Cámara 2'], ['401', 'Longaniza', 'Embutidos', 'kg', 6990, 5, 30, 'Vitrina'],
+    ['402', 'Chorizo parrillero', 'Embutidos', 'kg', 7490, 5, 30, 'Vitrina'], ['403', 'Vienesas', 'Embutidos', 'paq', 2490, 10, 60, 'Vitrina'], ['501', 'Carbón 2,5 kg', 'Abarrotes', 'un', 3990, 8, 40, 'Estante A'],
+    ['502', 'Sal parrillera', 'Abarrotes', 'un', 1290, 6, 30, 'Estante A']];
+  const d = { Productos: P.map(p => ({ codigo: p[0], nombre: p[1], categoria: p[2], unidad: p[3], precio: p[4], stockMin: p[5], stockMax: p[6], ubicacion: p[7], activo: 'si' })), Movimientos: [], Pedidos: [], Llegadas: [], Precios: [], Usuarios: [] };
+  let n = 0; const t = hoy(), id = () => 'd' + String(++n).padStart(5, '0');
+  const m = (f, l, c, tipo, q, nota) => d.Movimientos.push({ id: id(), fecha: f, local: l, codigo: c, tipo, cantidad: q, monto: tipo === 'venta' ? Math.round(q * P.find(p => p[0] === c)[4]) : 0, nota, usuario: 'admin' });
+  ['L1', 'L2'].forEach((l, li) => P.forEach((p, pi) => {
+    const dem = (1.5 + ((pi * 7) % 9)) * (li ? .6 : 1); let st = p[6] * .8; m(masDias(t, -50), l, p[0], 'entrada', Math.round(st), 'Stock inicial');
+    for (let k = 49; k >= 0; k--) {
+      const f = masDias(t, -k); let q = Math.round(dem * (.5 + rnd()) * 10) / 10; if (p[3] !== 'kg') q = Math.round(q);
+      if (st < p[5] && !(pi === 2 && li === 0) && !(pi === 8 && li === 1)) { const r = Math.round(p[6] * (pi === 5 ? 1.25 : .7)); m(f, l, p[0], 'entrada', r, 'Reposición'); st += r; }
+      q = Math.min(q, Math.max(0, Math.floor(st))); if (q > 0) { m(f, l, p[0], 'venta', q, 'Venta del día'); st -= q; }
+    }
+  }));
+  P.forEach(p => d.Precios.push({ id: id(), fecha: masDias(t, -50), codigo: p[0], anterior: 0, nuevo: p[4], usuario: 'admin', balanza1: 'ok', balanza2: 'ok' }));
+  d.Precios.push({ id: id(), fecha: masDias(t, -6), codigo: '104', anterior: 6990, nuevo: 7490, usuario: 'admin', balanza1: fch(masDias(t, -6)) + ' · admin', balanza2: '' });
+  d.Precios.push({ id: id(), fecha: masDias(t, -1), codigo: '301', anterior: 4690, nuevo: 4990, usuario: 'admin', balanza1: '', balanza2: '' });
+  d.Pedidos.push({ id: id(), fecha: masDias(t, -1), solicita: 'L2', despacha: 'L1', items: [{ codigo: '301', cantidad: 15 }, { codigo: '401', cantidad: 5 }], estado: 'solicitado', nota: 'Para el fin de semana', usuario: 'encargado2', actualizado: masDias(t, -1) });
+  d.Pedidos.push({ id: id(), fecha: masDias(t, -3), solicita: 'L1', despacha: 'L2', items: [{ codigo: '501', cantidad: 10 }], estado: 'aprobado', nota: '', usuario: 'encargado1', actualizado: masDias(t, -2) });
+  d.Llegadas.push({ id: id(), fecha: t, proveedor: 'Frigorífico del Sur', local: 'L1', items: [{ codigo: '103', cantidad: 40 }, { codigo: '104', cantidad: 30 }], estado: 'pendiente', nota: 'Llega en la mañana', usuario: 'admin' });
+  d.Llegadas.push({ id: id(), fecha: masDias(t, 1), proveedor: 'Avícola Central', local: 'L2', items: [{ codigo: '301', cantidad: 45 }, { codigo: '302', cantidad: 30 }], estado: 'pendiente', nota: '', usuario: 'admin' });
+  d.Llegadas.push({ id: id(), fecha: masDias(t, 4), proveedor: 'Cecinas Don Pedro', local: 'L1', items: [{ codigo: '401', cantidad: 15 }, { codigo: '403', cantidad: 40 }], estado: 'pendiente', nota: '', usuario: 'admin' });
+  d.Usuarios.push({ usuario: 'admin', nombre: 'Administrador', pin: '1234', rol: 'admin', local: 'L1' }, { usuario: 'encargado1', nombre: 'Encargado Principal', pin: '1111', rol: 'encargado', local: 'L1' }, { usuario: 'encargado2', nombre: 'Encargado Local 2', pin: '2222', rol: 'encargado', local: 'L2' });
+  return d;
+}
+
+/* ---------- Inicio ---------- */
+(function () {
+  let s = null; try { s = JSON.parse(localStorage.getItem('biru_sesion') || 'null'); } catch (e) { }
+  if (s && s.usuario) entrar(s, true); else pantallaLogin();
+})();
+</script>
+</body>
+</html>
