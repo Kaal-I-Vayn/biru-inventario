@@ -99,7 +99,7 @@ function permiso_(op, u) {
   else if (t === 'Productos') ok = op.op === 'upd' && Object.keys(op.f || {}).join() === 'ubicacion';
   else if (t === 'Precios') ok = op.op === 'upd' && Object.keys(op.f || {}).every(function (c) { return c === 'balanza1' || c === 'balanza2'; });
   else if (t === 'Movimientos') ok = op.op === 'add';
-  else if (t === 'Pedidos' && op.op === 'upd') ok = ['aprobado', 'rechazado'].indexOf((op.f || {}).estado) < 0;
+  else if (t === 'Pedidos' && op.op === 'upd') ok = ['aprobado', 'rechazado', 'cancelado'].indexOf((op.f || {}).estado) < 0;
   if (!ok) throw new Error('No tienes permiso para esta acción. Pídeselo al administrador.');
 }
 

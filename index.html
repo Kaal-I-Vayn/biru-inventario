@@ -203,6 +203,8 @@ function normalizar(d) {
       if ('items' in r && typeof r.items === 'string') { try { r.items = JSON.parse(r.items || '[]'); } catch (e) { r.items = []; } }
     });
   });
+  // La hoja se puede editar a mano: "Venta " o "l1" deben seguir contando.
+  d.Movimientos.forEach(m => { m.tipo = String(m.tipo ?? '').trim().toLowerCase(); m.local = String(m.local ?? '').trim().toUpperCase(); });
   return d;
 }
 function aplicarOps(d, ops) {
@@ -255,6 +257,7 @@ function stocks() {
   Object.values(S).forEach(o => Object.keys(o).forEach(c => o[c] = Math.round(o[c] * 1000) / 1000));
   return S;
 }
+const movRaros = () => db.Movimientos.filter(m => !LOCALES[m.local] || !TIPOS[m.tipo]);
 function estadoStock(p, s) {
   if (s <= 0) return ['cr', 'Sin stock'];
   if (p.stockMin && s < p.stockMin) return ['cr', 'Bajo mínimo'];
@@ -349,7 +352,7 @@ async function recargar() { ocupado(true); try { const j = await llamar(cred, []
 function ir(v) { vista = v; pintar(); window.scrollTo(0, 0); }
 function pintar() {
   graficos.forEach(g => g.destroy()); graficos = [];
-  const cont = { pedidos: pedidosAbiertos().length, llegadas: llegadasProx().length, precios: preciosPend().length, inventario: alertas().bajos.length };
+  const cont = { pedidos: pedidosAbiertos().length, llegadas: llegadasProx().length, precios: preciosPend().length, inventario: alertas().bajos.length + movRaros().length };
   const menu = VISTAS.filter(([k]) => esAdmin() || k !== 'usuarios');
   $('#raiz').innerHTML = `<div class="app">
     <div class="barra-movil"><button onclick="$('.lado').classList.toggle('abierto')" aria-label="Menú">☰</button><b class="marca">COMERCIAL BIRU</b></div>
@@ -476,11 +479,14 @@ V.inventario = () => {
     cuerpo = `<div class="filtros"><select onchange="est.hTipo=this.value;pintar()"><option value="">Todos los tipos</option>${Object.entries(TIPOS).map(([k, t]) => `<option value="${k}" ${est.hTipo === k ? 'selected' : ''}>${t.n}</option>`).join('')}</select>
       <select onchange="est.hLocal=this.value;pintar()">${optsLocal(est.hLocal, true)}</select><span class="muted">Últimos 200 movimientos</span></div>
     <div class="tabla-wrap"><table><tr><th>Fecha</th><th>Local</th><th>Producto</th><th>Tipo</th><th class="n">Cantidad</th><th>Nota</th><th>Usuario</th><th></th></tr>
-      ${ms.map(m => { const c = TIPOS[m.tipo].s * m.cantidad; return `<tr><td>${fch(m.fecha)}</td><td>${h(LOCALES[m.local])}</td><td>${h(nomProd(m.codigo))}</td><td>${TIPOS[m.tipo].n}</td><td class="n">${c > 0 ? '+' : ''}${num(c)}</td><td>${h(m.nota)}</td><td>${h(m.usuario)}</td>
+      ${ms.map(m => { const t = TIPOS[m.tipo], c = t ? t.s * m.cantidad : m.cantidad; return `<tr><td>${fch(m.fecha)}</td><td>${h(LOCALES[m.local] || m.local)}</td><td>${h(nomProd(m.codigo))}</td><td>${t ? t.n : `<span class="et cr">${h(m.tipo || '(vacío)')} — no reconocido</span>`}</td><td class="n">${t && c > 0 ? '+' : ''}${num(c)}</td><td>${h(m.nota)}</td><td>${h(m.usuario)}</td>
         <td>${esAdmin() ? `<button class="btn sec mini" data-id="${h(m.id)}" onclick="borrarMov(this.dataset.id)">Eliminar</button>` : ''}</td></tr>`; }).join('') || '<tr><td colspan="8" class="vacio">Sin movimientos.</td></tr>'}</table></div>`;
   }
+  const raros = movRaros();
+  const aviso = raros.length ? `<div class="tarjeta"><span class="et cr">Atención</span> <b>${raros.length} movimiento(s) no se cuentan en el stock</b> porque su tipo o local no se reconoce. Corrígelos en la hoja de Google (tipos válidos: ${Object.keys(TIPOS).join(', ')}; locales: ${Object.keys(LOCALES).join(', ')}).
+    <ul>${raros.slice(0, 10).map(m => `<li>${fch(m.fecha)} · local "${h(m.local)}" · tipo "${h(m.tipo)}" · ${h(nomProd(m.codigo))} · ${num(m.cantidad)}</li>`).join('')}</ul>${raros.length > 10 ? `<p class="muted">…y ${raros.length - 10} más.</p>` : ''}</div>` : '';
   return cab('Inventario', 'Stock por local, calculado a partir de los movimientos',
-    `<button class="btn sec" onclick="exportarStock()">Exportar</button><button class="btn sec" onclick="formConteo()">Conteo físico</button><button class="btn" onclick="formMov()">Registrar movimiento</button>`) +
+    `<button class="btn sec" onclick="exportarStock()">Exportar</button><button class="btn sec" onclick="formConteo()">Conteo físico</button><button class="btn" onclick="formMov()">Registrar movimiento</button>`) + aviso +
     `<div class="tabs"><button class="${est.invTab === 'stock' ? 'act' : ''}" onclick="est.invTab='stock';pintar()">Stock actual</button><button class="${est.invTab !== 'stock' ? 'act' : ''}" onclick="est.invTab='hist';pintar()">Historial de movimientos</button></div>
     <div class="tarjeta">${cuerpo}</div>`;
 };
@@ -568,15 +574,15 @@ function leerArchivo(inp) { const a = inp.files[0]; if (!a) return; const r = ne
 function exportarProd() { descargar('productos_' + hoy() + '.csv', [COLS_IMP, ...db.Productos.map(p => COLS_IMP.map(c => p[c]))]); }
 
 /* ---------- PEDIDOS ENTRE LOCALES ---------- */
-const EST_PED = { solicitado: 'av', aprobado: 'in', 'en camino': 'in', recibido: 'ok', rechazado: 'gr' };
+const EST_PED = { solicitado: 'av', aprobado: 'in', 'en camino': 'in', recibido: 'ok', rechazado: 'gr', cancelado: 'gr' };
 V.pedidos = () => {
   const ps = db.Pedidos.slice().sort((a, b) => String(b.id).localeCompare(String(a.id)));
   const ficha = p => `<div class="ficha"><div class="sup"><div><b>${h(LOCALES[p.solicita])}</b> pide a <b>${h(LOCALES[p.despacha])}</b> <span class="muted">· ${fch(p.fecha)} · por ${h(p.usuario)}</span></div><span class="et ${EST_PED[p.estado] || 'gr'}">${h(p.estado)}</span></div>
     ${listaItems(p.items)}${p.nota ? `<p class="muted">Nota: ${h(p.nota)}</p>` : ''}
     <div class="acciones" data-id="${h(p.id)}">${p.estado === 'solicitado' ? (esAdmin() ? `<button class="btn mini" onclick="estPedido(this,'aprobado')">Aprobar</button><button class="btn sec mini" onclick="estPedido(this,'rechazado')">Rechazar</button>` : '<span class="muted">Esperando aprobación del administrador</span>') : ''}
       ${p.estado === 'aprobado' ? `<button class="btn mini" onclick="estPedido(this,'en camino')">Despachar (sale de ${h(LOCALES[p.despacha])})</button>` : ''}
-      ${p.estado === 'en camino' ? `<button class="btn mini" onclick="estPedido(this,'recibido')">Marcar recibido en ${h(LOCALES[p.solicita])}</button>` : ''}</div></div>`;
-  const ab = ps.filter(p => EST_PED[p.estado] !== 'ok' && p.estado !== 'rechazado'), ce = ps.filter(p => !ab.includes(p)).slice(0, 20);
+      ${p.estado === 'en camino' ? `<button class="btn mini" onclick="estPedido(this,'recibido')">Marcar recibido en ${h(LOCALES[p.solicita])}</button>${esAdmin() ? `<button class="btn sec mini" onclick="cancelarEnvio(this)">Cancelar envío (vuelve a ${h(LOCALES[p.despacha])})</button>` : ''}` : ''}</div></div>`;
+  const ab = ps.filter(p => EST_PED[p.estado] !== 'ok' && EST_PED[p.estado] !== 'gr'), ce = ps.filter(p => !ab.includes(p)).slice(0, 20);
   return cab('Pedidos entre locales', 'Solicitado → Aprobado → En camino → Recibido', `<button class="btn" onclick="formPedido()">Nuevo pedido</button>`) +
     `<h3 style="margin-bottom:8px">Abiertos</h3>${ab.map(ficha).join('') || '<div class="tarjeta vacio">No hay pedidos abiertos.</div>'}
     <h3 style="margin:18px 0 8px">Cerrados recientes</h3>${ce.map(ficha).join('') || '<div class="tarjeta vacio">Aún no hay pedidos cerrados.</div>'}`;
@@ -597,7 +603,14 @@ function estPedido(btn, estado) {
   const ops = [{ op: 'upd', t: 'Pedidos', id, f: { estado, actualizado: hoy() } }];
   if (estado === 'en camino') p.items.forEach(i => ops.push(mov(hoy(), p.despacha, i.codigo, 'traslado-salida', i.cantidad, 'Pedido a ' + LOCALES[p.solicita])));
   if (estado === 'recibido') p.items.forEach(i => ops.push(mov(hoy(), p.solicita, i.codigo, 'traslado-entrada', i.cantidad, 'Pedido desde ' + LOCALES[p.despacha])));
+  // La mercadería en tránsito ya salió del local que despacha: al cancelar vuelve a él.
+  if (estado === 'cancelado') p.items.forEach(i => ops.push(mov(hoy(), p.despacha, i.codigo, 'traslado-entrada', i.cantidad, 'Envío cancelado, vuelve de pedido a ' + LOCALES[p.solicita])));
   guardar(ops, 'Pedido: ' + estado);
+}
+function cancelarEnvio(btn) {
+  const p = db.Pedidos.find(x => x.id === btn.parentNode.dataset.id);
+  if (!p || p.estado !== 'en camino') return;
+  confirmar(`¿Cancelar este envío? La mercadería vuelve al stock de ${LOCALES[p.despacha]} y el pedido queda cancelado.`, () => estPedido(btn, 'cancelado'), 'Cancelar envío');
 }
 
 /* ---------- LLEGADAS DE PROVEEDORES ---------- */
