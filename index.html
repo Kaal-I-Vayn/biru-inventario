@@ -38,6 +38,9 @@ details.con summary{cursor:pointer}
 .lado .cab img{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #fff}
 .lado .cab b{font-size:19px;line-height:1.05}
 .lado .cab small{display:block;font:500 10px system-ui;letter-spacing:2px;opacity:.9}
+.fondo-menu,.cerrar-menu{display:none}
+.fondo-menu{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:35}
+.cerrar-menu{margin-left:auto;background:none;border:1px solid rgba(255,255,255,.6);color:#fff;border-radius:6px;padding:2px 10px;font-size:18px;cursor:pointer}
 .lado nav{flex:1;overflow:auto;padding:10px 8px}
 .lado nav button{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;color:#D5D5DA;padding:10px 12px;border-radius:8px;cursor:pointer;text-align:left;margin-bottom:2px}
 .lado nav button:hover{background:#27272C;color:#fff}
@@ -116,7 +119,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
   .barra-movil{display:flex;align-items:center;gap:10px;background:var(--rojo);color:#fff;padding:10px 14px;position:sticky;top:0;z-index:30}
   .barra-movil button{background:none;border:1px solid rgba(255,255,255,.6);color:#fff;border-radius:6px;padding:4px 10px;font-size:18px}
   .lado{position:fixed;left:0;top:0;z-index:40;transform:translateX(-100%);transition:transform .2s}
-  .lado.abierto{transform:none;box-shadow:0 0 0 100vw rgba(0,0,0,.45)}
+  .lado.abierto{transform:none}
+  .lado.abierto+.fondo-menu,.cerrar-menu{display:block}
   .principal{padding:16px 14px 60px}
   .dos{grid-template-columns:1fr}
   .rej{grid-template-columns:1fr}
@@ -350,18 +354,21 @@ async function recargar() { ocupado(true); try { const j = await llamar(cred, []
 
 /* ---------- Estructura general ---------- */
 function ir(v) { vista = v; pintar(); window.scrollTo(0, 0); }
+// Menú lateral en celular: se cierra con ✕, tocando fuera o con Escape, sin tener que elegir una opción.
+const menu = abrir => $('.lado').classList.toggle('abierto', abrir);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('.lado')) menu(false); });
 function pintar() {
   graficos.forEach(g => g.destroy()); graficos = [];
   const cont = { pedidos: pedidosAbiertos().length, llegadas: llegadasProx().length, precios: preciosPend().length, inventario: alertas().bajos.length + movRaros().length };
   const menu = VISTAS.filter(([k]) => esAdmin() || k !== 'usuarios');
   $('#raiz').innerHTML = `<div class="app">
-    <div class="barra-movil"><button onclick="$('.lado').classList.toggle('abierto')" aria-label="Menú">☰</button><b class="marca">COMERCIAL BIRU</b></div>
+    <div class="barra-movil"><button onclick="menu()" aria-label="Abrir menú">☰</button><b class="marca">COMERCIAL BIRU</b></div>
     <aside class="lado" onclick="if(event.target.closest('nav button'))this.classList.remove('abierto')">
-      <div class="cab"><img src="logo.jpg" alt="" onerror="this.style.display='none'"><div class="marca"><small>COMERCIAL</small><b>BIRU</b></div></div>
+      <div class="cab"><img src="logo.jpg" alt="" onerror="this.style.display='none'"><div class="marca"><small>COMERCIAL</small><b>BIRU</b></div><button class="cerrar-menu" onclick="menu(false)" aria-label="Cerrar menú">✕</button></div>
       <nav>${menu.map(([k, n]) => `<button class="${vista === k ? 'act' : ''}" onclick="ir('${k}')">${n}${cont[k] ? `<span class="cont">${cont[k]}</span>` : ''}</button>`).join('')}</nav>
       <div class="pie"><b>${h(user.nombre || user.usuario)}</b><span>${esAdmin() ? 'Administrador' : 'Encargado'} · ${h(LOCALES[user.local] || 'Ambos locales')}${apiUrl() ? '' : ' · DEMO'}</span><br>
         <button onclick="recargar()">Actualizar</button> <button onclick="salir()">Salir</button></div>
-    </aside>
+    </aside><div class="fondo-menu" onclick="menu(false)"></div>
     <main class="principal" id="main"></main></div>`;
   $('#main').innerHTML = V[vista]();
   if (V[vista + '_post']) V[vista + '_post']();
